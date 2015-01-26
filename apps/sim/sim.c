@@ -37,7 +37,8 @@ int32 CODE param_rawdata_rate        = 0;
 int32 CODE param_rawdata             = 10000;
 uint8 CODE param_transmitter_battery = 200;
 uint8 CODE param_wixel_battery       = 0;
-uint32 CODE param_interval_ms        = 20000;
+uint32 CODE param_interval_ms        = 30000;
+uint8 CODE param_BLE                 = 0;
 
 uint8 usbEnabled = 1;
 
@@ -68,8 +69,19 @@ void initUart1() {
 }
 
 void print_packet(int32 raw, uint8 dex_battery, int32 wixel_battery) {
+    char params[30];
+    int x;
+    memset(params, 0, sizeof(params));
+    sprintf(params, "%lu %hhu %d", raw, dex_battery, wixel_battery);
+    for (x = 0; x < 30; x++)
+        if (params[x] == 0)
+            break;
     uartEnable();
-    printf("%lu %hhu %d", raw, dex_battery, wixel_battery);
+    if (param_BLE) {
+        printf("%s", params);
+    } else {
+        printf("%d %s", x, params);
+    }
     uartDisable();
 }
 
@@ -91,9 +103,11 @@ void setADCInputs() {
 }
 
 void configBt() {
-    uartEnable();
-    printf("AT+NAMEDexDrip2");
-    uartDisable();
+    if (param_BLE) {
+        uartEnable();
+        printf("AT+NAMEDexDrip2");
+        uartDisable();
+    }
 }
 
 void main() {
