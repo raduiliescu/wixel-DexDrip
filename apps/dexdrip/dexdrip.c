@@ -49,6 +49,9 @@ radio_channel: See description in radio_link.h.
 // if status_lights = 1; the yellow light flashes while actively scanning                           //
 // if a light is flashing for more than 10 minutes straight, it may not be picking up your dex      //
 //                                                                                                  //
+ static volatile BIT is_BLE = 1;                                                                    //
+// set this to 1 for HM10/11 bluetooth module                                                       //
+// set it to 0 HC05/06 bluetooth                                                                    //
 //                                                                                                  //
 //..................................................................................................//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,9 +232,20 @@ uint32 getSrcValue(char srcVal) {
     }
     return i & 0xFF;
 }
+
 void print_packet(Dexcom_packet* pPkt) {
+    char XDATA params[30];
+    int x;
+    memset(params, 0, sizeof(params));
+    sprintf(params, "%lu %hhu %d", dex_num_decoder(pPkt->raw), pPkt->battery, adcConvertToMillivolts(adcRead(0)));
+    for (x = 0; x < 30; x++)
+        if (params[x] == 0)
+            break;
     uartEnable();
-    printf("%lu %hhu %d", dex_num_decoder(pPkt->raw), pPkt->battery, adcConvertToMillivolts(adcRead(0)));
+    if (is_BLE)
+        printf("%s", params);
+    else
+        printf("%d %s", x, params);
     uartDisable();
 }
 
@@ -443,9 +457,11 @@ void setADCInputs() {
 }
 
 void configBt() {
-    uartEnable();
-    printf("AT+NAMEDexDrip");
-    uartDisable();
+    if (is_BLE) {
+        uartEnable();
+        printf("AT+NAMEDexDrip");
+        uartDisable();
+    }
 }
 
 void main() {
