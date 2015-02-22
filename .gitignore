@@ -23,6 +23,10 @@ apps/*/*
 *.rst
 *.sym
 *.wxl
+
+# Ignore cscope files
+cscope*
+
 # Ignore eclipse files
 .cproject
 .project
