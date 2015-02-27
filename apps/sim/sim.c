@@ -32,27 +32,32 @@
 #include <string.h>
 #include <ctype.h>
 #include <adc.h>
+#include <dexdrip_packet.h>
+#include <inet.h>
 
 int32 CODE param_rawdata_rate        = 0;
-int32 CODE param_rawdata             = 10000;
+uint32 CODE param_rawdata             = 80000;
 uint8 CODE param_transmitter_battery = 200;
-uint8 CODE param_wixel_battery       = 0;
+int16 CODE param_wixel_battery       = 30000;
 uint32 CODE param_interval_ms        = 30000;
 uint8 CODE param_BLE                 = 0;
 
 uint8 usbEnabled = 1;
 
 void uartEnable() {
-    U1UCR |= 0x40; //CTS/RTS ON
+    /*    U1UCR |= 0x40; //CTS/RTS ON
     delayMs(1000);
+    */
 }
 
 void uartDisable() {
+    /*
     LED_GREEN(1);
     delayMs(2000);
     U1UCR &= ~0x40; //CTS/RTS Off
     LED_GREEN(0);
     U1CSR &= ~0x40; // Recevier disable
+    */
 }
 
 void doServices()
@@ -66,6 +71,39 @@ void doServices()
 void initUart1() {
     uart1Init();
     uart1SetBaudRate(9600);
+}
+
+void uart1_send_dexdrip_packet(dexdrip_binary_packet_t XDATA *pkt){
+    uart1TxSend((uint8 XDATA *)pkt, 2);
+    uart1TxSend(pkt->payload, pkt->len);
+}
+/*
+uint16 get_sequence_id() {
+    static uint16 id = 0;
+    return id++;
+}
+*/
+void send_dexdrip_packet(uint8 packet_type, uint8 packet_len, uint8 XDATA *payload) {
+    dexdrip_binary_packet_t XDATA pkt;
+    pkt.packet_type = packet_type;
+    pkt.len = packet_len;
+    pkt.payload = payload;
+    uart1_send_dexdrip_packet(&pkt);
+}
+
+void send_dexdrip_data_packet(uint32 raw, uint8 dexcom_battery, int16 dexdrip_battery) {
+    dexdrip_data_packet_t XDATA data;
+    //    uint16 sequence_id = get_sequence_id();
+    //    uint32 timestamp = getMs();
+
+    data.raw = htonl(raw);
+    data.dexcom_battery = dexcom_battery;
+    data.dexdrip_battery = htons(dexdrip_battery);
+    /*
+    data.sequence_id = HTONS(sequence_id);
+    data.timestamp = HTONL(timestamp);
+    */
+    send_dexdrip_packet(DATA_PACKET, sizeof(struct dexdrip_data_packet), (uint8 XDATA*)&data);
 }
 
 void print_packet(int32 raw, uint8 dex_battery, int32 wixel_battery) {
@@ -128,7 +166,10 @@ void main() {
         if (getMs() - lastToggle >= param_interval_ms)
         {
             int32 wixel_battery = param_wixel_battery?param_wixel_battery:adcConvertToMillivolts(adcRead(5));
+            send_dexdrip_data_packet(param_rawdata, param_transmitter_battery, wixel_battery);
+            /*
             print_packet(param_rawdata, param_transmitter_battery, wixel_battery);
+            */
             lastToggle = getMs();
             LED_RED(!LED_RED_STATE);
         }
