@@ -38,7 +38,7 @@ int32 CODE param_rawdata             = 10000;
 uint8 CODE param_transmitter_battery = 200;
 uint8 CODE param_wixel_battery       = 0;
 uint32 CODE param_interval_ms        = 30000;
-uint8 CODE param_BLE                 = 0;
+uint8 CODE param_BLE                 = 1;
 
 uint8 usbEnabled = 1;
 
